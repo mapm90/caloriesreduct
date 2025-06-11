@@ -1,8 +1,8 @@
 import React from 'react';
-import BMIDemo from './components/BMIDemo';
+import BMICalculator from './components/BMICalculator';
 
 function App() {
-  return <BMIDemo />;
+  return <BMICalculator />;
 }
 
 export default App;

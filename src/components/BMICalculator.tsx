@@ -1,188 +1,236 @@
-import React from 'react';
-import { AlertTriangle, CheckCircle, Heart, Scale, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FaWeight, FaRulerVertical, FaRunning, FaCalendarDay, FaRoad, FaFireAlt, FaCheckCircle } from 'react-icons/fa';
 
-interface BMICalculatorProps {
-  weight: number; // peso en kilogramos
-  height: number; // altura en metros
-}
+const CALORIES_PER_KM = 60;
 
-interface BMIResult {
-  bmi: number;
-  category: string;
-  message: string;
-  color: string;
-  bgColor: string;
-  alertType: 'success' | 'warning' | 'error';
-}
+const IMCCalorieCalculator: React.FC = () => {
+  const [weight, setWeight] = useState<number | ''>('');
+  const [height, setHeight] = useState<number | ''>('');
+  const [minCaloriesToBurn, setMinCaloriesToBurn] = useState<number | null>(null);
 
-const BMICalculator: React.FC<BMICalculatorProps> = ({ weight, height }) => {
+  const [days, setDays] = useState<number | ''>('');
+  const [kms, setKms] = useState<number | ''>('');
+  const [calories, setCalories] = useState<number | ''>('');
 
-  const calculateBMI = (weight: number, height: number): number => {
-    if (height <= 0 || weight <= 0) return 0;
-    return weight / (height * height);
-  };
+  const [calculationResult, setCalculationResult] = useState<string | null>(null);
 
-  // 🔹 Función para calcular kilómetros diarios a correr
-  const calculateDailyKilometers = (currentWeight: number, targetWeight: number): number => {
-    const caloriesPerKg = 7700; // calorías para perder 1 kg
-    const caloriesPerKm = 60; // calorías quemadas por km corrido
-    const totalWeightToLose = currentWeight - targetWeight;
-    const totalCaloriesToBurn = totalWeightToLose * caloriesPerKg;
-    const dailyCaloriesToBurn = totalCaloriesToBurn / 30; // 30 días
-    const dailyKilometers = dailyCaloriesToBurn / caloriesPerKm;
-    return dailyKilometers > 0 ? dailyKilometers : 0;
-  };
+  const [editableFields, setEditableFields] = useState<Array<'days' | 'kms' | 'calories'>>([]);
 
-  // 🔹 Función para calcular calorías diarias necesarias para subir de peso
-  const calculateDailyCaloriesToGain = (currentWeight: number, targetWeight: number): number => {
-    const caloriesPerKg = 7700; // calorías para ganar 1 kg
-    const totalWeightToGain = targetWeight - currentWeight;
-    const totalCaloriesToConsume = totalWeightToGain * caloriesPerKg;
-    const dailyExtraCalories = totalCaloriesToConsume / 30; // 30 días
-    return dailyExtraCalories > 0 ? dailyExtraCalories : 0;
-  };
+  const [showCongrats, setShowCongrats] = useState(false);
 
-  const getBMIResult = (bmi: number): BMIResult => {
-    const minNormalBMI = 18.5;
-    const maxNormalBMI = 24.9;
-    const targetBMI = bmi < minNormalBMI ? minNormalBMI : maxNormalBMI;
+  const calculateMinCalories = () => {
+    if (weight && height) {
+      const heightInMeters = height / 100;
+      const currentBMI = weight / (heightInMeters * heightInMeters);
+      const maxHealthyWeight = 24.9 * (heightInMeters * heightInMeters);
+      const weightToLose = weight - maxHealthyWeight;
+      const caloriesToBurn = weightToLose * 7700;
 
-    const targetWeight = targetBMI * (height * height);
-
-    if (bmi === 0) {
-      return {
-        bmi,
-        category: 'Datos inválidos',
-        message: '⚠️ Por favor ingresa valores válidos para peso y altura.',
-        color: 'text-gray-700',
-        bgColor: 'bg-gray-50 border-gray-200',
-        alertType: 'warning'
-      };
-    } else if (bmi < 18.5) {
-      const dailyCalories = calculateDailyCaloriesToGain(weight, targetWeight);
-      return {
-        bmi,
-        category: 'Bajo peso',
-        message: `⚠️ Tu IMC indica bajo peso. Es recomendable consultar con un profesional de la salud. Para alcanzar un IMC saludable en 30 días, deberías consumir aproximadamente ${dailyCalories.toFixed(0)} calorías extra por día con el mismo ritmo de actividad fìsica.`,
-        color: 'text-orange-700',
-        bgColor: 'bg-orange-50 border-orange-200',
-        alertType: 'warning'
-      };
-    } else if (bmi >= 18.5 && bmi <= 24.9) {
-      return {
-        bmi,
-        category: 'Peso normal',
-        message: '🎉 ¡Felicidades! Tu IMC está en el rango saludable. Mantén tus hábitos alimenticios y de ejercicio 🎉',
-        color: 'text-green-700',
-        bgColor: 'bg-green-50 border-green-200',
-        alertType: 'success'
-      };
-    } else if (bmi >= 25 && bmi <= 29.9) {
-      const dailyKilometers = calculateDailyKilometers(weight, targetWeight);
-      return {
-        bmi,
-        category: 'Sobrepeso',
-        message: ` Tu IMC indica sobrepeso. Considera adoptar hábitos más saludables. Segùn estudios de la OMS para alcanzar un IMC saludable en 30 días, deberías correr aproximadamente ${dailyKilometers.toFixed(2)} km diarios. Si te parece mdemaciodo, en la suite de aplicaciones encontraràs herramientas que ayudan a confeccionar planes mas ajustados a ti para alcanzar tus metas`,
-        color: 'text-yellow-700',
-        bgColor: 'bg-yellow-50 border-yellow-200',
-        alertType: 'warning'
-      };
-    } else {
-      const dailyKilometers = calculateDailyKilometers(weight, targetWeight);
-      return {
-        bmi,
-        category: 'Obesidad',
-        message: ` Tu IMC indica obesidad. Es importante que consultes con un profesional de la salud. Segùn estudios de la OMS para alcanzar un IMC saludable en 30 días, deberías correr aproximadamente ${dailyKilometers.toFixed(2)} km diarios. Si te parece mdemaciodo, en la suite de aplicaciones encontraràs herramientas que ayudan a confeccionar planes mas ajustados a ti para alcanzar tus metas`,
-        color: 'text-red-700',
-        bgColor: 'bg-red-50 border-red-200',
-        alertType: 'error'
-      };
+      if (weightToLose > 0) {
+        setMinCaloriesToBurn(caloriesToBurn);
+        setShowCongrats(false);
+      } else {
+        setShowCongrats(true);
+        setMinCaloriesToBurn(null);
+      }
     }
   };
 
-  const bmi = calculateBMI(weight, height);
-  const result = getBMIResult(bmi);
+  const resetCalculator = () => {
+    setWeight('');
+    setHeight('');
+    setMinCaloriesToBurn(null);
+    setDays('');
+    setKms('');
+    setCalories('');
+    setCalculationResult(null);
+    setEditableFields([]);
+    setShowCongrats(false);
+  };
 
-  const renderIcon = () => {
-    if (bmi === 0) return <AlertCircle className="w-6 h-6 text-gray-500" />;
-    if (result.alertType === 'success') return <CheckCircle className="w-6 h-6 text-green-500" />;
-    if (result.alertType === 'warning') return <AlertTriangle className="w-6 h-6 text-yellow-500" />;
-    if (result.alertType === 'error') return <Heart className="w-6 h-6 text-red-500" />;
-    return null;
+  useEffect(() => {
+    const filled = [];
+    if (days !== '') filled.push('days');
+    if (kms !== '') filled.push('kms');
+    if (calories !== '') filled.push('calories');
+
+    if (filled.length === 2 && editableFields.length === 0) {
+      setEditableFields(filled);
+    }
+
+    if (editableFields.length === 2) {
+      const lockedField = ['days', 'kms', 'calories'].find(f => !editableFields.includes(f))!;
+
+      if (lockedField === 'calories' && days !== '' && kms !== '') {
+        const totalCalories = Number(days) * Number(kms) * CALORIES_PER_KM;
+        setCalories(totalCalories);
+        setCalculationResult(`Para correr ${days} días a ${kms} km por día, quemarás aproximadamente ${totalCalories.toFixed(0)} kcal.`);
+      } else if (lockedField === 'kms' && days !== '' && calories !== '') {
+        const kmPerDay = Number(calories) / (Number(days) * CALORIES_PER_KM);
+        setKms(Number(kmPerDay));
+        setCalculationResult(`Para correr ${days} días y quemar ${calories} kcal, debes correr aproximadamente ${kmPerDay.toFixed(2)} km por día.`);
+      } else if (lockedField === 'days' && kms !== '' && calories !== '') {
+        const daysNeeded = Number(calories) / (Number(kms) * CALORIES_PER_KM);
+        setDays(Number(daysNeeded));
+        setCalculationResult(`Para correr ${kms} km por día y quemar ${calories} kcal, necesitarás correr aproximadamente ${daysNeeded.toFixed(0)} días.`);
+      }
+    }
+  }, [days, kms, calories, editableFields]);
+
+  const isDisabled = (field: 'days' | 'kms' | 'calories') => {
+    if (editableFields.length === 0) return false;
+    if (editableFields.includes(field)) return false;
+    return true;
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <Scale className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Calculadora de IMC</h2>
-        <p className="text-gray-600">Índice de Masa Corporal</p>
-      </div>
-
-      {/* Input Summary */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-gray-50 p-4 rounded-xl text-center">
-          <p className="text-sm text-gray-600 mb-1">Peso</p>
-          <p className="text-xl font-semibold text-gray-800">{weight} kg</p>
+    <div className="max-w-xl mx-auto p-8 bg-gradient-to-r from-indigo-50 via-white to-indigo-50 rounded-3xl shadow-2xl border border-indigo-200 transform transition-all duration-500 hover:scale-[1.02]">
+      {showCongrats ? (
+        <div className="text-center bg-green-100 border border-green-400 text-green-900 p-8 rounded-xl shadow-md animate-fadeIn">
+          <FaCheckCircle className="mx-auto text-6xl mb-4 animate-pulse text-green-600" />
+          <h3 className="font-extrabold text-3xl mb-2">🎉 ¡Felicidades! 🎉</h3>
+          <p className="mb-6 text-lg">Tu peso ya está dentro de un IMC saludable.</p>
+          <button
+            onClick={resetCalculator}
+            className="mt-2 inline-flex items-center gap-2 justify-center px-6 py-3 bg-green-600 text-white font-semibold rounded-xl shadow-md hover:bg-green-700 transition-colors duration-300"
+          >
+            Reiniciar
+          </button>
         </div>
-        <div className="bg-gray-50 p-4 rounded-xl text-center">
-          <p className="text-sm text-gray-600 mb-1">Altura</p>
-          <p className="text-xl font-semibold text-gray-800">{height} m</p>
-        </div>
-      </div>
-
-      {/* BMI Result */}
-      {bmi > 0 && (
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-4">
-            <span className="text-2xl font-bold text-blue-600">{result.bmi.toFixed(1)}</span>
+      ) : !minCaloriesToBurn ? (
+        <>
+          <h2 className="text-3xl font-extrabold text-indigo-700 mb-8 text-center drop-shadow-md">
+            Calcula tus calorías mínimas a quemar
+          </h2>
+          <div className="space-y-6">
+            <div className="relative">
+              <FaWeight className="absolute top-3 left-3 text-indigo-500" />
+              <input
+                type="number"
+                placeholder="Peso (kg)"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-400 outline-none transition"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                min={0}
+              />
+            </div>
+            <div className="relative">
+              <FaRulerVertical className="absolute top-3 left-3 text-indigo-500" />
+              <input
+                type="number"
+                placeholder="Altura (cm)"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-400 outline-none transition"
+                value={height}
+                onChange={(e) => setHeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                min={0}
+              />
+            </div>
+            <button
+              className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform duration-150"
+              onClick={calculateMinCalories}
+              disabled={!(weight && height)}
+            >
+              Calcular calorías mínimas
+            </button>
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">Tu IMC: {result.bmi.toFixed(1)}</h3>
-          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-            {result.category}
-          </span>
-        </div>
+        </>
+      ) : (
+        <>
+          <h2 className="text-3xl font-extrabold text-indigo-700 mb-8 text-center drop-shadow-md">
+            Planifica tu quema de calorías
+          </h2>
+
+          <div className="mb-8 text-center animate-fadeIn">
+            <p className="text-gray-600 text-lg mb-2">Calorías mínimas a quemar para alcanzar un IMC saludable:</p>
+            <p className="text-5xl font-extrabold text-red-600 drop-shadow-md">{minCaloriesToBurn.toFixed(0)} kcal</p>
+          </div>
+
+          <p className="mb-6 text-center text-gray-700 text-lg font-medium">
+            Completa <strong>dos de las tres opciones</strong>. La tercera se calculará automáticamente.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="relative">
+              <label className="flex items-center gap-2 mb-2 text-indigo-600 font-semibold">
+                <FaCalendarDay /> Días corriendo
+              </label>
+              <input
+                type="number"
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
+                  isDisabled('days') ? 'bg-gray-100 border-gray-300' : 'border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-300'
+                } outline-none transition`}
+                value={days}
+                onChange={(e) => setDays(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                disabled={isDisabled('days')}
+                min={0}
+                placeholder="Ej. 5"
+              />
+              <FaCalendarDay className="absolute top-3 left-3 text-indigo-500 pointer-events-none" />
+            </div>
+            <div className="relative">
+              <label className="flex items-center gap-2 mb-2 text-indigo-600 font-semibold">
+                <FaRoad /> Km por día
+              </label>
+              <input
+                type="number"
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
+                  isDisabled('kms') ? 'bg-gray-100 border-gray-300' : 'border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-300'
+                } outline-none transition`}
+                value={kms}
+                onChange={(e) => setKms(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                disabled={isDisabled('kms')}
+                min={0}
+                placeholder="Ej. 3"
+              />
+              <FaRoad className="absolute top-3 left-3 text-indigo-500 pointer-events-none" />
+            </div>
+            <div className="relative">
+              <label className="flex items-center gap-2 mb-2 text-indigo-600 font-semibold">
+                <FaFireAlt /> Calorías totales
+              </label>
+              <input
+                type="number"
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
+                  isDisabled('calories') ? 'bg-gray-100 border-gray-300' : 'border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-300'
+                } outline-none transition`}
+                value={calories}
+                onChange={(e) => setCalories(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                disabled={isDisabled('calories')}
+                min={0}
+                placeholder="Ej. 900"
+              />
+              <FaFireAlt className="absolute top-3 left-3 text-indigo-500 pointer-events-none" />
+            </div>
+          </div>
+
+          {calculationResult && (
+            <div className="mb-6 p-5 bg-green-50 border-l-8 border-green-500 text-green-700 rounded-xl shadow-md animate-fadeIn">
+              <p className="font-semibold mb-2 text-lg">Resultado:</p>
+              <p className="text-md">{calculationResult}</p>
+            </div>
+          )}
+
+          <button
+            className="w-full py-3 bg-gray-300 rounded-xl font-semibold hover:bg-gray-400 active:scale-95 transition-transform duration-150 shadow-md"
+            onClick={resetCalculator}
+          >
+            Reiniciar
+          </button>
+        </>
       )}
-
-      {/* Alert Message */}
-      <div className={`${result.bgColor} border-2 rounded-xl p-4 mb-4`}>
-        <div className="flex items-start space-x-3">
-          <div className="flex-shrink-0 mt-0.5">
-            {renderIcon()}
-          </div>
-          <div className="flex-1">
-            <p className={`text-sm ${result.color} leading-relaxed`}>
-              {result.message}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* BMI Scale Reference */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Escala de IMC: {bmi > 0 ? result.bmi.toFixed(1) : '-'}</h4>
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-orange-600">Bajo peso</span>
-            <span className="text-gray-600">&lt; 18.5</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-green-600">Peso normal</span>
-            <span className="text-gray-600">18.5 - 24.9</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-yellow-600">Sobrepeso</span>
-            <span className="text-gray-600">25.0 - 29.9</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-red-600">Obesidad</span>
-            <span className="text-gray-600">≥ 30.0</span>
-          </div>
-        </div>
-      </div>
+      <style>
+        {`
+          @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.5s ease forwards;
+          }
+        `}
+      </style>
     </div>
   );
 };
 
-export default BMICalculator;
+export default IMCCalorieCalculator;
