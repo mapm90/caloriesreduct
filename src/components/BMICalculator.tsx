@@ -100,7 +100,7 @@ const IMCCalorieCalculator: React.FC = () => {
       ) : !minCaloriesToBurn ? (
         <>
           <h2 className="text-3xl font-extrabold text-indigo-700 mb-8 text-center drop-shadow-md">
-            Calcula tus calorías mínimas a quemar
+            Calcula tus calorías mínimas a quemarr
           </h2>
           <div className="space-y-6">
             <div className="relative">
