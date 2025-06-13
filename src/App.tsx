@@ -1,8 +1,8 @@
 import React from 'react';
-import BMICalculator from './components/BMICalculator';
+import BMICaloriesreduct from './components/BMICalculator';
 
 function App() {
-  return <BMICalculator />;
+  return <BMICaloriesreduct />;
 }
 
 export default App;
